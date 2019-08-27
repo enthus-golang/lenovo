@@ -64,7 +64,6 @@ func SetHttpClient(httpClient *http.Client) ClientOptionFunc {
 func SetClientID(id string) ClientOptionFunc {
 	return func(c *Client) error {
 		c.id = id
-		fmt.Println(c.id)
 		return nil
 	}
 }
