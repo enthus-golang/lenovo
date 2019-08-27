@@ -2,11 +2,12 @@ package lenovo
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 const (
@@ -17,6 +18,7 @@ const (
 
 var (
 	ErrNotEnoughSerials = errors.New("not enough serials provided require at least two")
+	ErrRequestFailed    = errors.New("request failed")
 )
 
 type Serial struct {
@@ -57,6 +59,9 @@ func (c *Client) WarrantyBySerial(serial string) (*Serial, error) {
 	if err != nil {
 		return nil, err
 	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.Wrap(ErrRequestFailed, resp.Status)
+	}
 
 	var s Serial
 	err = json.NewDecoder(resp.Body).Decode(&s)
@@ -89,6 +94,9 @@ func (c *Client) WarrantiesBySerials(serials []string) ([]Serial, error) {
 	resp, err := c.sendRequest(r)
 	if err != nil {
 		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, errors.Wrap(ErrRequestFailed, resp.Status)
 	}
 
 	var s []Serial
