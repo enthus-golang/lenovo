@@ -33,7 +33,7 @@ type Warranty struct {
 	Country      string
 	UpgradeURL   string `json:"UpgradeUrl"`
 	Warranty     []WarrantyWarranty
-	Contract     *WarrantyContract
+	Contract     []WarrantyContract
 }
 
 type WarrantyWarranty struct {
@@ -46,9 +46,15 @@ type WarrantyWarranty struct {
 }
 
 type WarrantyContract struct {
-	Contract string
-	Start    Time
-	End      Time
+	Contract        string
+	Quantity        int
+	ItemNumber      string
+	ChargeCode      string
+	SLA             string
+	EntitlementCode string
+	Status          string
+	Start           Time
+	End             Time
 }
 
 func (c *Client) WarrantyBySerial(serial string) (*Warranty, error) {
