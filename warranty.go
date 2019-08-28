@@ -19,9 +19,10 @@ const (
 var (
 	ErrNotEnoughSerials = errors.New("not enough serials provided require at least two")
 	ErrRequestFailed    = errors.New("request failed")
+	ErrInvalidResponse  = errors.New("invalid response")
 )
 
-type Serial struct {
+type Warranty struct {
 	Serial       string
 	ErrorCode    int
 	ErrorMessage string
@@ -31,10 +32,11 @@ type Serial struct {
 	Shipped      *Time
 	Country      string
 	UpgradeURL   string `json:"UpgradeUrl"`
-	Warranty     []SerialWarranty
+	Warranty     []WarrantyWarranty
+	Contract     *WarrantyContract
 }
 
-type SerialWarranty struct {
+type WarrantyWarranty struct {
 	ID          string
 	Name        string
 	Description string
@@ -43,7 +45,13 @@ type SerialWarranty struct {
 	End         Time
 }
 
-func (c *Client) WarrantyBySerial(serial string) (*Serial, error) {
+type WarrantyContract struct {
+	Contract string
+	Start    Time
+	End      Time
+}
+
+func (c *Client) WarrantyBySerial(serial string) (*Warranty, error) {
 	data := url.Values{}
 	data.Set("Serial", serial)
 
@@ -62,17 +70,20 @@ func (c *Client) WarrantyBySerial(serial string) (*Serial, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, errors.Wrap(ErrRequestFailed, resp.Status)
 	}
+	if resp.ContentLength == 2 {
+		return nil, ErrInvalidResponse
+	}
 
-	var s Serial
-	err = json.NewDecoder(resp.Body).Decode(&s)
+	var w Warranty
+	err = json.NewDecoder(resp.Body).Decode(&w)
 	if err != nil {
 		return nil, err
 	}
 
-	return &s, nil
+	return &w, nil
 }
 
-func (c *Client) WarrantiesBySerials(serials []string) ([]Serial, error) {
+func (c *Client) WarrantiesBySerials(serials []string) ([]Warranty, error) {
 	if len(serials) <= 1 {
 		return nil, ErrNotEnoughSerials
 	}
@@ -99,11 +110,11 @@ func (c *Client) WarrantiesBySerials(serials []string) ([]Serial, error) {
 		return nil, errors.Wrap(ErrRequestFailed, resp.Status)
 	}
 
-	var s []Serial
-	err = json.NewDecoder(resp.Body).Decode(&s)
+	var w []Warranty
+	err = json.NewDecoder(resp.Body).Decode(&w)
 	if err != nil {
 		return nil, err
 	}
 
-	return s, nil
+	return w, nil
 }
