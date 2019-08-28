@@ -2,7 +2,6 @@ package lenovo
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/cookiejar"
 
