@@ -2,12 +2,12 @@ package lenovo
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 const (
@@ -74,7 +74,7 @@ func (c *Client) WarrantyBySerial(serial string) (*Warranty, error) {
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.Wrap(ErrRequestFailed, resp.Status)
+		return nil, fmt.Errorf("%w: %s", ErrRequestFailed, resp.Status)
 	}
 	if resp.ContentLength == 2 {
 		return nil, ErrInvalidResponse
@@ -113,7 +113,7 @@ func (c *Client) WarrantiesBySerials(serials []string) ([]Warranty, error) {
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, errors.Wrap(ErrRequestFailed, resp.Status)
+		return nil, fmt.Errorf("%w: %s", ErrRequestFailed, resp.Status)
 	}
 
 	var w []Warranty

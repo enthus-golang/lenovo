@@ -1,8 +1,5 @@
-module gitlab.com/mclgmbh/golang-pkg/lenovo
+module github.com/enthus-golang/lenovo
 
-go 1.12
+go 1.22
 
-require (
-	github.com/pkg/errors v0.8.1
-	golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7
-)
+require golang.org/x/net v0.0.0-20190813141303-74dc4d7220e7
