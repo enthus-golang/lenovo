@@ -24,7 +24,7 @@ jobs:
           go-version-file: ./go.mod
 
       - name: Set up Golang build cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path:  ~/.cache/go-build
           key: ${{ runner.os }}-golang-golangci-lint-${{ hashFiles('**/go.sum') }}
@@ -47,7 +47,7 @@ jobs:
           go-version-file: ./go.mod
 
       - name: Set up Golang build cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path:  ~/.cache/go-build
           key: ${{ runner.os }}-golang-test-${{ hashFiles('**/go.sum') }}
