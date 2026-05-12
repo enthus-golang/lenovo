@@ -6,14 +6,42 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 )
 
 const (
-	warrantyURL = "https://supportapi.lenovo.com/v2.5/warranty"
-
 	InvalidCountry = "**INVALID**"
+
+	contentTypeForm = "application/x-www-form-urlencoded"
+)
+
+// WarrantyType values returned by the Warranty Details endpoint.
+const (
+	WarrantyTypeBase     = "BASE"
+	WarrantyTypeUpgrade  = "UPGRADE"
+	WarrantyTypeExtended = "EXTENDED"
+	WarrantyTypeInstant  = "INSTANT"
+	WarrantyTypeUnknown  = "UNKNOWN"
+)
+
+// WarrantyDelivery values returned by the Warranty Details endpoint.
+const (
+	DeliveryBringIn     = "BRING_IN"
+	DeliveryCourier     = "COURIER"
+	DeliveryCRU         = "CRU"
+	DeliveryDepot       = "DEPOT"
+	DeliveryAdvExchange = "ADV_EXCHANGE"
+	DeliveryOnSite      = "ON_SITE"
+	DeliveryPartsOnly   = "PARTS_ONLY"
+	DeliveryTechSupport = "TECH_SUPPORT"
+	DeliveryUnknown     = "UNKNOWN"
+)
+
+// WarrantyCategory values returned by the Warranty Details endpoint.
+const (
+	CategoryMachine   = "MACHINE"
+	CategoryComponent = "COMPONENT"
+	CategoryUnknown   = "UNKNOWN"
 )
 
 var (
@@ -57,35 +85,33 @@ type WarrantyContract struct {
 	End             Time
 }
 
+// WarrantyDetails describes a warranty offering identified by its SDF code.
+type WarrantyDetails struct {
+	ID          string
+	Name        string
+	Description string
+	Type        string
+	Delivery    string
+	Category    string
+	Duration    string
+}
+
 func (c *Client) WarrantyBySerial(serial string) (*Warranty, error) {
 	data := url.Values{}
 	data.Set("Serial", serial)
 
-	dataEncoded := data.Encode()
-	r, err := http.NewRequest(http.MethodPost, warrantyURL, strings.NewReader(dataEncoded))
+	r, err := newFormRequest(http.MethodPost, c.baseURL+"/warranty", data)
 	if err != nil {
 		return nil, err
-	}
-	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	r.Header.Add("Content-Length", strconv.Itoa(len(dataEncoded)))
-
-	resp, err := c.sendRequest(r)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%w: %s", ErrRequestFailed, resp.Status)
-	}
-	if resp.ContentLength == 2 {
-		return nil, ErrInvalidResponse
 	}
 
 	var w Warranty
-	err = json.NewDecoder(resp.Body).Decode(&w)
-	if err != nil {
+	if err := c.do(r, &w); err != nil {
 		return nil, err
 	}
-
+	if w.Serial == "" {
+		return nil, ErrInvalidResponse
+	}
 	return &w, nil
 }
 
@@ -100,27 +126,109 @@ func (c *Client) WarrantiesBySerials(serials []string) ([]Warranty, error) {
 		data.Add("Serial", v)
 	}
 
-	dataEncoded := data.Encode()
-	r, err := http.NewRequest(http.MethodPost, warrantyURL, strings.NewReader(dataEncoded))
+	r, err := newFormRequest(http.MethodPost, c.baseURL+"/warranty", data)
 	if err != nil {
 		return nil, err
-	}
-	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	r.Header.Add("Content-Length", strconv.Itoa(len(dataEncoded)))
-
-	resp, err := c.sendRequest(r)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%w: %s", ErrRequestFailed, resp.Status)
 	}
 
 	var w []Warranty
-	err = json.NewDecoder(resp.Body).Decode(&w)
+	if err := c.do(r, &w); err != nil {
+		return nil, err
+	}
+	return w, nil
+}
+
+// WarrantyDetailsByID looks up a warranty offering by its SDF code.
+//
+// See https://supportapi.lenovo.com/documentation/Warranty.html
+func (c *Client) WarrantyDetailsByID(id string) (*WarrantyDetails, error) {
+	r, err := http.NewRequest(http.MethodGet, c.baseURL+"/warranty"+"/"+url.PathEscape(id), nil)
 	if err != nil {
 		return nil, err
 	}
 
-	return w, nil
+	var w WarrantyDetails
+	if err := c.do(r, &w); err != nil {
+		return nil, err
+	}
+	if w.ID == "" {
+		return nil, ErrInvalidResponse
+	}
+	return &w, nil
+}
+
+// WarrantyOption represents a single international warranty option for a
+// destination country.
+type WarrantyOption struct {
+	ID          string
+	Name        string
+	Description string
+	Type        string
+	Delivery    string
+	Category    string
+	Duration    string
+	Country     string
+}
+
+// WarrantyOptionsBySerial returns the international warranty options for the
+// given serial number. countryCode may be empty to use the API default.
+//
+// See https://supportapi.lenovo.com/documentation/Warranty.html
+func (c *Client) WarrantyOptionsBySerial(countryCode, serial string) ([]WarrantyOption, error) {
+	return c.warrantyOptions(countryCode, "Serial", serial)
+}
+
+// WarrantyOptionsByProduct returns the international warranty options for the
+// given product (catalog identifier). countryCode may be empty to use the API
+// default.
+//
+// See https://supportapi.lenovo.com/documentation/Warranty.html
+func (c *Client) WarrantyOptionsByProduct(countryCode, product string) ([]WarrantyOption, error) {
+	return c.warrantyOptions(countryCode, "Product", product)
+}
+
+func (c *Client) warrantyOptions(countryCode, key, value string) ([]WarrantyOption, error) {
+	u := c.baseURL + "/warrantyoption"
+	if countryCode != "" {
+		u += "/" + url.PathEscape(countryCode)
+	}
+
+	data := url.Values{}
+	data.Set(key, value)
+
+	r, err := newFormRequest(http.MethodPost, u, data)
+	if err != nil {
+		return nil, err
+	}
+
+	var opts []WarrantyOption
+	if err := c.do(r, &opts); err != nil {
+		return nil, err
+	}
+	return opts, nil
+}
+
+// newFormRequest builds an HTTP request with a form-encoded body. The Go HTTP
+// client computes the Content-Length automatically from the *strings.Reader.
+func newFormRequest(method, endpoint string, data url.Values) (*http.Request, error) {
+	r, err := http.NewRequest(method, endpoint, strings.NewReader(data.Encode()))
+	if err != nil {
+		return nil, err
+	}
+	r.Header.Set("Content-Type", contentTypeForm)
+	return r, nil
+}
+
+// do sends the request, asserts a 2xx response, and decodes the body into v.
+func (c *Client) do(r *http.Request, v any) error {
+	resp, err := c.sendRequest(r)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("%w: %s", ErrRequestFailed, resp.Status)
+	}
+	return json.NewDecoder(resp.Body).Decode(v)
 }
