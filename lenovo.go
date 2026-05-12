@@ -4,9 +4,12 @@ import (
 	"errors"
 	"net/http"
 	"net/http/cookiejar"
+	"strings"
 
 	"golang.org/x/net/publicsuffix"
 )
+
+const defaultBaseURL = "https://supportapi.lenovo.com/v2.5"
 
 var (
 	ErrNoClientID = errors.New("no ClientID set")
@@ -15,14 +18,16 @@ var (
 type ClientOptionFunc func(*Client) error
 
 type Client struct {
-	c  *http.Client
-	id string
+	c       *http.Client
+	id      string
+	baseURL string
 }
 
 // NewClient creates a new client to work with Lenovo eSupport.
 func NewClient(options ...ClientOptionFunc) (*Client, error) {
 	c := &Client{
-		c: http.DefaultClient,
+		c:       http.DefaultClient,
+		baseURL: defaultBaseURL,
 	}
 
 	// Run the options on it
@@ -54,6 +59,16 @@ func SetHttpClient(httpClient *http.Client) ClientOptionFunc {
 		} else {
 			c.c = http.DefaultClient
 		}
+		return nil
+	}
+}
+
+// SetBaseURL overrides the default Lenovo eSupport base URL. The default is
+// https://supportapi.lenovo.com/v2.5. Useful for tests against an httptest
+// server.
+func SetBaseURL(u string) ClientOptionFunc {
+	return func(c *Client) error {
+		c.baseURL = strings.TrimRight(u, "/")
 		return nil
 	}
 }

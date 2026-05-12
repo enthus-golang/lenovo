@@ -10,9 +10,6 @@ import (
 )
 
 const (
-	baseURL     = "https://supportapi.lenovo.com/v2.5"
-	warrantyURL = baseURL + "/warranty"
-
 	InvalidCountry = "**INVALID**"
 
 	contentTypeForm = "application/x-www-form-urlencoded"
@@ -103,7 +100,7 @@ func (c *Client) WarrantyBySerial(serial string) (*Warranty, error) {
 	data := url.Values{}
 	data.Set("Serial", serial)
 
-	r, err := newFormRequest(http.MethodPost, warrantyURL, data)
+	r, err := newFormRequest(http.MethodPost, c.baseURL+"/warranty", data)
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +126,7 @@ func (c *Client) WarrantiesBySerials(serials []string) ([]Warranty, error) {
 		data.Add("Serial", v)
 	}
 
-	r, err := newFormRequest(http.MethodPost, warrantyURL, data)
+	r, err := newFormRequest(http.MethodPost, c.baseURL+"/warranty", data)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +142,7 @@ func (c *Client) WarrantiesBySerials(serials []string) ([]Warranty, error) {
 //
 // See https://supportapi.lenovo.com/documentation/Warranty.html
 func (c *Client) WarrantyDetailsByID(id string) (*WarrantyDetails, error) {
-	r, err := http.NewRequest(http.MethodGet, warrantyURL+"/"+url.PathEscape(id), nil)
+	r, err := http.NewRequest(http.MethodGet, c.baseURL+"/warranty"+"/"+url.PathEscape(id), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +188,7 @@ func (c *Client) WarrantyOptionsByProduct(countryCode, product string) ([]Warran
 }
 
 func (c *Client) warrantyOptions(countryCode, key, value string) ([]WarrantyOption, error) {
-	u := baseURL + "/warrantyoption"
+	u := c.baseURL + "/warrantyoption"
 	if countryCode != "" {
 		u += "/" + url.PathEscape(countryCode)
 	}

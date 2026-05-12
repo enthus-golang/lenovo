@@ -5,8 +5,6 @@ import (
 	"net/url"
 )
 
-const contractURL = baseURL + "/Contract"
-
 // Contract represents a Lenovo service contract and the products it covers.
 type Contract struct {
 	ID          string
@@ -35,7 +33,7 @@ type ContractProduct struct {
 //
 // See https://supportapi.lenovo.com/documentation/Warranty.html
 func (c *Client) ContractByID(id string) (*Contract, error) {
-	r, err := http.NewRequest(http.MethodGet, contractURL+"/"+url.PathEscape(id), nil)
+	r, err := http.NewRequest(http.MethodGet, c.baseURL+"/Contract/"+url.PathEscape(id), nil)
 	if err != nil {
 		return nil, err
 	}
