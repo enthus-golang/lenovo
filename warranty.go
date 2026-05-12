@@ -179,7 +179,7 @@ func (c *Client) WarrantyDetailsByID(id string) (*WarrantyDetails, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("%w: %s", ErrRequestFailed, resp.Status)
 	}
@@ -245,7 +245,7 @@ func (c *Client) warrantyOptions(countryCode, key, value string) ([]WarrantyOpti
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("%w: %s", ErrRequestFailed, resp.Status)
 	}
