@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 )
 
@@ -15,6 +14,8 @@ const (
 	warrantyURL = baseURL + "/warranty"
 
 	InvalidCountry = "**INVALID**"
+
+	contentTypeForm = "application/x-www-form-urlencoded"
 )
 
 // WarrantyType values returned by the Warranty Details endpoint.
@@ -102,31 +103,18 @@ func (c *Client) WarrantyBySerial(serial string) (*Warranty, error) {
 	data := url.Values{}
 	data.Set("Serial", serial)
 
-	dataEncoded := data.Encode()
-	r, err := http.NewRequest(http.MethodPost, warrantyURL, strings.NewReader(dataEncoded))
+	r, err := newFormRequest(http.MethodPost, warrantyURL, data)
 	if err != nil {
 		return nil, err
-	}
-	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	r.Header.Add("Content-Length", strconv.Itoa(len(dataEncoded)))
-
-	resp, err := c.sendRequest(r)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%w: %s", ErrRequestFailed, resp.Status)
-	}
-	if resp.ContentLength == 2 {
-		return nil, ErrInvalidResponse
 	}
 
 	var w Warranty
-	err = json.NewDecoder(resp.Body).Decode(&w)
-	if err != nil {
+	if err := c.do(r, &w); err != nil {
 		return nil, err
 	}
-
+	if w.Serial == "" {
+		return nil, ErrInvalidResponse
+	}
 	return &w, nil
 }
 
@@ -141,28 +129,15 @@ func (c *Client) WarrantiesBySerials(serials []string) ([]Warranty, error) {
 		data.Add("Serial", v)
 	}
 
-	dataEncoded := data.Encode()
-	r, err := http.NewRequest(http.MethodPost, warrantyURL, strings.NewReader(dataEncoded))
+	r, err := newFormRequest(http.MethodPost, warrantyURL, data)
 	if err != nil {
 		return nil, err
-	}
-	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	r.Header.Add("Content-Length", strconv.Itoa(len(dataEncoded)))
-
-	resp, err := c.sendRequest(r)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%w: %s", ErrRequestFailed, resp.Status)
 	}
 
 	var w []Warranty
-	err = json.NewDecoder(resp.Body).Decode(&w)
-	if err != nil {
+	if err := c.do(r, &w); err != nil {
 		return nil, err
 	}
-
 	return w, nil
 }
 
@@ -175,21 +150,12 @@ func (c *Client) WarrantyDetailsByID(id string) (*WarrantyDetails, error) {
 		return nil, err
 	}
 
-	resp, err := c.sendRequest(r)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%w: %s", ErrRequestFailed, resp.Status)
-	}
-	if resp.ContentLength == 2 {
-		return nil, ErrInvalidResponse
-	}
-
 	var w WarrantyDetails
-	if err := json.NewDecoder(resp.Body).Decode(&w); err != nil {
+	if err := c.do(r, &w); err != nil {
 		return nil, err
+	}
+	if w.ID == "" {
+		return nil, ErrInvalidResponse
 	}
 	return &w, nil
 }
@@ -232,27 +198,40 @@ func (c *Client) warrantyOptions(countryCode, key, value string) ([]WarrantyOpti
 
 	data := url.Values{}
 	data.Set(key, value)
-	dataEncoded := data.Encode()
 
-	r, err := http.NewRequest(http.MethodPost, u, strings.NewReader(dataEncoded))
+	r, err := newFormRequest(http.MethodPost, u, data)
 	if err != nil {
 		return nil, err
-	}
-	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
-	r.Header.Add("Content-Length", strconv.Itoa(len(dataEncoded)))
-
-	resp, err := c.sendRequest(r)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%w: %s", ErrRequestFailed, resp.Status)
 	}
 
 	var opts []WarrantyOption
-	if err := json.NewDecoder(resp.Body).Decode(&opts); err != nil {
+	if err := c.do(r, &opts); err != nil {
 		return nil, err
 	}
 	return opts, nil
+}
+
+// newFormRequest builds an HTTP request with a form-encoded body. The Go HTTP
+// client computes the Content-Length automatically from the *strings.Reader.
+func newFormRequest(method, endpoint string, data url.Values) (*http.Request, error) {
+	r, err := http.NewRequest(method, endpoint, strings.NewReader(data.Encode()))
+	if err != nil {
+		return nil, err
+	}
+	r.Header.Set("Content-Type", contentTypeForm)
+	return r, nil
+}
+
+// do sends the request, asserts a 2xx response, and decodes the body into v.
+func (c *Client) do(r *http.Request, v any) error {
+	resp, err := c.sendRequest(r)
+	if err != nil {
+		return err
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("%w: %s", ErrRequestFailed, resp.Status)
+	}
+	return json.NewDecoder(resp.Body).Decode(v)
 }

@@ -1,8 +1,6 @@
 package lenovo
 
 import (
-	"encoding/json"
-	"fmt"
 	"net/http"
 	"net/url"
 )
@@ -42,21 +40,12 @@ func (c *Client) ContractByID(id string) (*Contract, error) {
 		return nil, err
 	}
 
-	resp, err := c.sendRequest(r)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("%w: %s", ErrRequestFailed, resp.Status)
-	}
-	if resp.ContentLength == 2 {
-		return nil, ErrInvalidResponse
-	}
-
 	var contract Contract
-	if err := json.NewDecoder(resp.Body).Decode(&contract); err != nil {
+	if err := c.do(r, &contract); err != nil {
 		return nil, err
+	}
+	if contract.ID == "" {
+		return nil, ErrInvalidResponse
 	}
 	return &contract, nil
 }
