@@ -127,6 +127,7 @@ func TestTransportErrors(t *testing.T) {
 		{"WarrantiesBySerials", func() error { _, err := c.WarrantiesBySerials([]string{"A", "B"}); return err }},
 		{"WarrantyDetailsByID", func() error { _, err := c.WarrantyDetailsByID("D"); return err }},
 		{"WarrantyOptionsBySerial", func() error { _, err := c.WarrantyOptionsBySerial("DE", "S"); return err }},
+		{"WarrantyOptionsByProduct", func() error { _, err := c.WarrantyOptionsByProduct("", "P"); return err }},
 		{"ContractByID", func() error { _, err := c.ContractByID("C"); return err }},
 	}
 	for _, tc := range cases {
