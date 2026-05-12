@@ -37,10 +37,10 @@ func NewClient(options ...ClientOptionFunc) (*Client, error) {
 		}
 	}
 
-	jar, err := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
-	if err != nil {
-		return nil, err
-	}
+	// cookiejar.New cannot return a non-nil error: its current implementation
+	// always returns (jar, nil) and its documented contract does not define
+	// any failure mode.
+	jar, _ := cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 	c.c.Jar = jar
 
 	if c.id == "" {
