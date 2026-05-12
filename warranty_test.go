@@ -92,7 +92,7 @@ func TestWarrantyBySerial(t *testing.T) {
 	if got.UpgradeURL != "https://example.com/upgrade" {
 		t.Errorf("UpgradeURL = %q", got.UpgradeURL)
 	}
-	if got.Purchased == nil || !got.Purchased.Time.Equal(time.Date(2020, 4, 15, 0, 0, 0, 0, time.UTC)) {
+	if got.Purchased == nil || !got.Purchased.Equal(time.Date(2020, 4, 15, 0, 0, 0, 0, time.UTC)) {
 		t.Errorf("Purchased = %v, want 2020-04-15", got.Purchased)
 	}
 	if len(got.Warranty) != 1 {
