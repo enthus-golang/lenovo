@@ -337,6 +337,35 @@ func TestContractByID(t *testing.T) {
 	}
 }
 
+func TestContractByIDNon200(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "nope", http.StatusNotFound)
+	}))
+	defer srv.Close()
+
+	c := newTestClient(t, srv)
+	if _, err := c.ContractByID("X"); !errors.Is(err, ErrRequestFailed) {
+		t.Fatalf("err = %v, want ErrRequestFailed", err)
+	}
+}
+
+func TestContractByIDEscapesPath(t *testing.T) {
+	var rawPath string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		rawPath = r.URL.EscapedPath()
+		_, _ = io.WriteString(w, `{"ID":"CT/01"}`)
+	}))
+	defer srv.Close()
+
+	c := newTestClient(t, srv)
+	if _, err := c.ContractByID("CT/01"); err != nil {
+		t.Fatalf("ContractByID: %v", err)
+	}
+	if rawPath != "/Contract/CT%2F01" {
+		t.Errorf("escaped path = %q, want /Contract/CT%%2F01", rawPath)
+	}
+}
+
 func TestContractByIDEmpty(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = io.WriteString(w, `{}`)
