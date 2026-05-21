@@ -65,12 +65,17 @@ type Warranty struct {
 }
 
 type WarrantyWarranty struct {
-	ID          string
-	Name        string
-	Description string
-	Type        string
-	Start       Time
-	End         Time
+	ID              string
+	Name            string
+	Description     string
+	Type            string
+	Delivery        string
+	Category        string
+	Status          string
+	SLA             string
+	EntitlementCode string
+	Start           Time
+	End             Time
 }
 
 type WarrantyContract struct {

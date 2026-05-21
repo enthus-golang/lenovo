@@ -22,6 +22,11 @@ func TestWarrantyBySerial(t *testing.T) {
 			{
 				"ID": "3Y-DEPOT", "Name": "3 Year Depot", "Description": "Depot warranty",
 				"Type": "BASE",
+				"Delivery": "DEPOT",
+				"Category": "MACHINE",
+				"Status": "Active",
+				"SLA": "NBD",
+				"EntitlementCode": "EC-1",
 				"Start": "2020-04-20T00:00:00Z", "End": "2023-04-20T00:00:00Z"
 			}
 		],
@@ -68,9 +73,14 @@ func TestWarrantyBySerial(t *testing.T) {
 		UpgradeURL: "https://example.com/upgrade",
 		Warranty: []WarrantyWarranty{{
 			ID: "3Y-DEPOT", Name: "3 Year Depot", Description: "Depot warranty",
-			Type:  WarrantyTypeBase,
-			Start: Time{time.Date(2020, 4, 20, 0, 0, 0, 0, time.UTC)},
-			End:   Time{time.Date(2023, 4, 20, 0, 0, 0, 0, time.UTC)},
+			Type:            WarrantyTypeBase,
+			Delivery:        DeliveryDepot,
+			Category:        CategoryMachine,
+			Status:          "Active",
+			SLA:             "NBD",
+			EntitlementCode: "EC-1",
+			Start:           Time{time.Date(2020, 4, 20, 0, 0, 0, 0, time.UTC)},
+			End:             Time{time.Date(2023, 4, 20, 0, 0, 0, 0, time.UTC)},
 		}},
 		Contract: []WarrantyContract{},
 	}
