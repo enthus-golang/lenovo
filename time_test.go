@@ -17,6 +17,9 @@ func TestTimeUnmarshalJSON(t *testing.T) {
 		{"RFC3339 UTC", `"2024-06-15T12:30:00Z"`, time.Date(2024, 6, 15, 12, 30, 0, 0, time.UTC)},
 		{"RFC3339 offset", `"2024-06-15T14:30:00+02:00"`,
 			time.Date(2024, 6, 15, 14, 30, 0, 0, time.FixedZone("", 2*60*60))},
+		{"no timezone", `"2026-05-06T00:00:00"`, time.Date(2026, 5, 6, 0, 0, 0, 0, time.UTC)},
+		{"no timezone fractional", `"2026-05-06T10:20:30.5"`,
+			time.Date(2026, 5, 6, 10, 20, 30, 500000000, time.UTC)},
 	}
 
 	for _, tc := range cases {
@@ -27,6 +30,9 @@ func TestTimeUnmarshalJSON(t *testing.T) {
 			}
 			if !got.Equal(tc.want) {
 				t.Errorf("Time = %v, want %v", got, tc.want)
+			}
+			if got.IsZero() != tc.want.IsZero() {
+				t.Errorf("IsZero() = %v, want %v", got.IsZero(), tc.want.IsZero())
 			}
 		})
 	}
